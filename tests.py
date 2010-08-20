@@ -129,6 +129,22 @@ class ReaderPacketTest(unittest.TestCase):
 		self.assertEqual(2, len(res))
 		self.assertTrue(isinstance(res[0], pure_pcapy.Pkthdr))
 		self.assertEqual(str, type(res[1]))
+		self.assertEqual("x"*30, res[1])
+
+	def test_read_2_packets(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("IIII", 10, 20, 30, 40),
+			"a" * 30,
+			struct.pack("IIII", 11, 20, 30, 40),
+			"b" * 30,
+			])
+
+		reader = pure_pcapy.Reader(input)
+		res = reader.next()
+		self.assertEqual("a"*30, res[1])
+		res = reader.next()
+		self.assertEqual("b"*30, res[1])
 
 class PkthdrTest(unittest.TestCase):
 	def test_hdr_fields(self):
