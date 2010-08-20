@@ -80,6 +80,42 @@ class ReaderHeaderTest(unittest.TestCase):
 		self.assertEqual(0, reader.getnonblock())
 
 class ReaderPacketTest(unittest.TestCase):
+	def test_read_empty(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			])
+
+		reader = pure_pcapy.Reader(input)
+		res = reader.next()
+		self.assertEqual((None, ''), res)
+	
+	def test_read_half_header(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("II", 10, 20),
+			])
+
+		reader = pure_pcapy.Reader(input)
+		try:
+			res = reader.next()
+			self.fail("exception not thrown")
+		except pure_pcapy.PcapError, e:
+			self.assertEqual("truncated dump file; tried to read 16 header bytes, only got 8", e.args[0])
+	
+	def test_read_half_data(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("IIII", 10, 20, 4, 4),
+			"aa"
+			])
+
+		reader = pure_pcapy.Reader(input)
+		try:
+			res = reader.next()
+			self.fail("exception not thrown")
+		except pure_pcapy.PcapError, e:
+			self.assertEqual("truncated dump file; tried to read 4 captured bytes, only got 2", e.args[0])
+
 	def test_read_packet(self):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),

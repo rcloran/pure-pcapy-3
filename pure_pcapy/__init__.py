@@ -72,11 +72,18 @@ class Reader(object):
 
 	def next(self):
 		header = self.source.read(self.PACKET_HEADER_LEN)
+		if len(header) == 0:
+			return (None, '')
+		if len(header) < self.PACKET_HEADER_LEN:
+			raise PcapError("truncated dump file; tried to read %i header bytes, only got %i" % (self.PACKET_HEADER_LEN, len(header)))
 		hdr_values = struct.unpack("IIII", header)
 		ts_sec, ts_usec, incl_len, orig_len = [self.fixup_long(x) for x in hdr_values]
 		
-		pkthdr = Pkthdr(ts_sec, ts_usec, incl_len, orig_len)
 		data = self.source.read(incl_len)
+		if len(data) < incl_len:
+			raise PcapError("truncated dump file; tried to read %i captured bytes, only got %i" % (incl_len, len(data)))
+
+		pkthdr = Pkthdr(ts_sec, ts_usec, incl_len, orig_len)
 		return (pkthdr, data)
 
 	def getnet(self):
