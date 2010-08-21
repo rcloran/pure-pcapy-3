@@ -3,6 +3,23 @@
 
 import struct
 
+DLT_NULL = 0
+DLT_EN10MB = 1
+DLT_IEEE802 = 6
+DLT_ARCNET = 7
+DLT_SLIP = 8
+DLT_PPP = 9
+DLT_FDDI = 10
+DLT_ATM_RFC1483 = 11
+DLT_RAW = 12
+DLT_PPP_SERIAL = 50
+DLT_PPP_ETHER = 51
+DLT_C_HDLC = 104
+DLT_IEEE802_11 = 105
+DLT_LOOP = 108
+DLT_LINUX_SLL = 113
+DLT_LTALK = 114
+
 class PcapError(Exception): pass
 
 def fixup_identical_short(x): return x
@@ -124,12 +141,29 @@ class Reader(object):
 		""" this has no effect on savefiles, so is not implemented in pure-pcapy """
 		pass
 
+	def dump_open(self, filename):
+		return Dumper(filename, self.snaplen, self.network)
+
 class Dumper(object):
-	def __init__(self):
-		pass
+	def __init__(self, filename, snaplen, network):
+		self.store = open(filename, "wb")
+		self.store.write(struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, snaplen, network))
+		self.store.flush() # have to flush, since there's no close
 
 	def dump(self, header, data):
-		pass
+		if not instanceof(header, Pkthdr):
+			raise PcapError("not a proper Pkthdr")
+
+		if type(data) != str:
+			raise PcapError("can dump only strings")
+
+		if header.getcaplen() != len(data):
+			raise PcapError("capture length not equal to length of data")
+
+		fields = list(header.getts()) + [header.getcaplen(), header.getlen()]
+		self.store.write(struct.pack("IIII", *fields))
+		self.store.write(data)
+		self.store.flush()
 
 class Pkthdr(object):
 	def __init__(self, ts_sec, ts_usec, incl_len, orig_len):
