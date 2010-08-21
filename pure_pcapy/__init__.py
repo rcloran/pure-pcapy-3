@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-""" pcapy clone in pure python """
+"""
+pcapy clone in pure python
+This module aims to support exactly the same interface as pcapy,
+so that it can be used as a drop-in replacement. This means the module
+does not and probably will never support live captures. Offline file
+support should match the original though.
+"""
 
 import struct
 
@@ -20,15 +26,23 @@ DLT_LOOP = 108
 DLT_LINUX_SLL = 113
 DLT_LTALK = 114
 
-class PcapError(Exception): pass
+class PcapError(Exception):
+	""" General Pcap module exception class """
+	pass
 
-def fixup_identical_short(x): return x
-def fixup_identical_long(x): return x
-def fixup_swapped_short(x):
-	return ((x&0xff) << 8) | ((x&0xff00) >> 8)
-def fixup_swapped_long(x):
-	bottom = fixup_swapped_short(x & 0xffff)
-	top = fixup_swapped_short((x >> 16) & 0xffff)
+def fixup_identical_short(short):
+	""" noop for "fixing" big/little endian """
+	return short
+def fixup_identical_long(long_int):
+	""" noop for "fixing" big/little endian """
+	return long_int
+def fixup_swapped_short(short):
+	""" swap bytes in a 16b short """
+	return ((short&0xff) << 8) | ((short&0xff00) >> 8)
+def fixup_swapped_long(long_int):
+	""" swap swapped shorts in a 32b int """
+	bottom = fixup_swapped_short(long_int & 0xffff)
+	top = fixup_swapped_short((long_int >> 16) & 0xffff)
 	return ((bottom << 16) & 0xffff0000) | top
 
 fixup_sets = {
@@ -37,18 +51,19 @@ fixup_sets = {
 		}
 
 def open_offline(filename):
+	""" opens the pcap file indicated by `filename` and returns a Reader object """
 	if filename == "-":
 		import sys
 		source = sys.stdin
 	else:
 		try:
 			source = open(filename, "rb")
-		except Exception, e:
-			raise PcapError("file access problem", e)
+		except Exception, error:
+			raise PcapError("file access problem", error)
 	
 	return Reader(source)
 
-def open_live(device, snaplen, promisc, to_ms):
+def open_live(_device, _snaplen, _promisc, _to_ms):
 	raise NotImplementedError("This function is only available in pcapy")
 
 def lookupdev():
@@ -57,18 +72,28 @@ def lookupdev():
 def findalldevs():
 	raise NotImplementedError("This function is only available in pcapy")
 
-def compile(linktype, snaplen, filter, optimize, netmask):
+def compile(_linktype, _snaplen, _filter, _optimize, _netmask):
 	raise NotImplementedError("not implemented yet")
 
 class Reader(object):
-	GLOBAL_HEADER_LEN = 24
-	PACKET_HEADER_LEN = 16
+	"""
+	An interface for reading an open pcap file.
+	This object can either read a single packet via `next()` or a series
+	via `loop()` or `dispatch()`.
+	"""
+
+	__GLOBAL_HEADER_LEN = 24
+	__PACKET_HEADER_LEN = 16
 
 	def __init__(self, source):
-		self.source = source
-		header = self.source.read(self.GLOBAL_HEADER_LEN)
-		if len(header) < self.GLOBAL_HEADER_LEN:
-			raise PcapError("truncated dump file; tried to read %i file header bytes, only got %i" % (self.GLOBAL_HEADER_LEN, len(header)))
+		""" creates a Reader instance from an open file object """
+
+		self.__source = source
+		header = self.__source.read(self.__GLOBAL_HEADER_LEN)
+		if len(header) < self.__GLOBAL_HEADER_LEN:
+			raise PcapError(
+					"truncated dump file; tried to read %i file header bytes, only got %i" %
+					(self.__GLOBAL_HEADER_LEN, len(header)))
 		
 		hdr_values = struct.unpack("IHHIIII", header)
 		if hdr_values[0] in fixup_sets:
@@ -76,12 +101,19 @@ class Reader(object):
 		else:
 			raise PcapError("bad dump file format")
 
-		self.version_major, self.version_minor = [self.fixup_short(x) for x in hdr_values[1:3]]
-		self.thiszone, self.sigfigs, self.snaplen, self.network = [self.fixup_long(x) for x in hdr_values[3:]]
+		self.version_major, self.version_minor = [self.fixup_short(x)
+				for x in hdr_values[1:3]]
+		self.thiszone, self.sigfigs, self.snaplen, self.network = [self.fixup_long(x)
+				for x in hdr_values[3:]]
 
-		self.last_good_position = self.GLOBAL_HEADER_LEN
+		self.last_good_position = self.__GLOBAL_HEADER_LEN
 
 	def __loop_and_count(self, maxcant, callback):
+		"""
+		reads up to `maxcant` packets and runs callback for each of them
+		returns the number of packets processed
+		"""
+
 		i = 0
 		while True:
 			if i >= maxcant and maxcant > -1:
@@ -93,11 +125,16 @@ class Reader(object):
 			else:
 				callback(hdr, data)
 
-			i+=1
+			i += 1
 
 		return i
 
 	def dispatch(self, maxcant, callback):
+		"""
+		reads up to `maxcant` packets and runs callback for each of them
+		returns the number of packets processed or 0 if no limit was specified
+		"""
+
 		i = self.__loop_and_count(maxcant, callback)
 
 		if maxcant > -1:
@@ -106,21 +143,32 @@ class Reader(object):
 			return 0
 
 	def loop(self, maxcant, callback):
+		"""
+		reads up to `maxcant` packets and runs callback for each of them
+		does not return a value
+		"""
 		self.__loop_and_count(maxcant, callback)
-		return None
 
 	def next(self):
-		header = self.source.read(self.PACKET_HEADER_LEN)
+		""" reads the next packet from file and returns a (Pkthdr, data) tuple """
+
+		header = self.__source.read(self.__PACKET_HEADER_LEN)
+
 		if len(header) == 0:
 			return (None, '')
-		if len(header) < self.PACKET_HEADER_LEN:
-			raise PcapError("truncated dump file; tried to read %i header bytes, only got %i" % (self.PACKET_HEADER_LEN, len(header)))
+		if len(header) < self.__PACKET_HEADER_LEN:
+			raise PcapError(
+					"truncated dump file; tried to read %i header bytes, only got %i" %
+					(self.__PACKET_HEADER_LEN, len(header)))
+
 		hdr_values = struct.unpack("IIII", header)
 		ts_sec, ts_usec, incl_len, orig_len = [self.fixup_long(x) for x in hdr_values]
 		
-		data = self.source.read(incl_len)
+		data = self.__source.read(incl_len)
 		if len(data) < incl_len:
-			raise PcapError("truncated dump file; tried to read %i captured bytes, only got %i" % (incl_len, len(data)))
+			raise PcapError(
+					"truncated dump file; tried to read %i captured bytes, only got %i" %
+					(incl_len, len(data)))
 
 		pkthdr = Pkthdr(ts_sec, ts_usec, incl_len, orig_len)
 		return (pkthdr, data)
@@ -132,9 +180,13 @@ class Reader(object):
 		raise NotImplementedError("This function is only available in pcapy")
 
 	def datalink(self):
+		""" returns the datalink type used in the current file """
 		return self.network
 
 	def getnonblock(self):
+		"""
+		shows whether the operations are nonblocking, which is always 0 for files
+		"""
 		return 0
 
 	def setnonblock(self, state):
@@ -142,15 +194,31 @@ class Reader(object):
 		pass
 
 	def dump_open(self, filename):
+		"""
+		create a new dumper object which inherits the network and snaplen information
+		from the original reader
+		"""
 		return Dumper(filename, self.snaplen, self.network)
 
 class Dumper(object):
+	"""
+	Interface for pcap files, which can be used for creating new files.
+	Although this is accessible only through `Reader.dump_open()` in the
+	original pcapy, there's no good reason for that limitation and this object
+	can be used directly. It implements some sanity checking before the packet
+	is written to the file.
+	Files created this way are always stored using the native byte order.
+	"""
+
 	def __init__(self, filename, snaplen, network):
+		""" creates a new dumper object which can be used for writing pcap files """
 		self.store = open(filename, "wb")
-		self.store.write(struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, snaplen, network))
+		self.store.write(struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0,
+			snaplen, network))
 		self.store.flush() # have to flush, since there's no close
 
 	def dump(self, header, data):
+		""" writes a new header and packet to the file, then forces a file flush """
 		if not isinstance(header, Pkthdr):
 			raise PcapError("not a proper Pkthdr")
 
@@ -166,18 +234,26 @@ class Dumper(object):
 		self.store.flush()
 
 class Pkthdr(object):
+	"""
+	Packet header, as used in the pcap files before each data segment.
+	This class is a simple data wrapper.
+	"""
+
 	def __init__(self, ts_sec, ts_usec, incl_len, orig_len):
 		self.ts = (ts_sec, ts_usec)
 		self.incl_len = incl_len
 		self.orig_len = orig_len
 
 	def getts(self):
+		""" returns a (seconds, microseconds) tuple for the capture time"""
 		return self.ts
 
 	def getcaplen(self):
+		""" returns the captured length of the packet """
 		return self.incl_len
 
 	def getlen(self):
+		""" returns the original length of the packet """
 		return self.orig_len
 
 class Bpf(object):
