@@ -285,5 +285,31 @@ class PkthdrTest(unittest.TestCase):
 		self.assertEqual(30, hdr.getcaplen())
 		self.assertEqual(40, hdr.getlen())
 
+class DumperTest(unittest.TestCase):
+	def test_replicate(self):
+		import os
+
+		original = ''.join([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("IIII", 10, 20, 30, 40),
+			"x" * 30])
+
+		input = tempfile.TemporaryFile()
+		input.write(original)
+		input.seek(0)
+		output_fd, output_filename = tempfile.mkstemp()
+
+		reader = pure_pcapy.Reader(input)
+		dumper = reader.dump_open(output_filename)
+		dumper.dump(*reader.next())
+
+		os.close(output_fd)
+		verify = open(output_filename, "rb")
+		replica = verify.read()
+		os.unlink(output_filename)
+
+		self.assertEqual(original, replica)
+
+
 if __name__ == "__main__":
 	unittest.main()

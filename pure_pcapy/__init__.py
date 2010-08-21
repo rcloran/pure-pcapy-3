@@ -151,7 +151,7 @@ class Dumper(object):
 		self.store.flush() # have to flush, since there's no close
 
 	def dump(self, header, data):
-		if not instanceof(header, Pkthdr):
+		if not isinstance(header, Pkthdr):
 			raise PcapError("not a proper Pkthdr")
 
 		if type(data) != str:
