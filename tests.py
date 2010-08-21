@@ -146,6 +146,124 @@ class ReaderPacketTest(unittest.TestCase):
 		res = reader.next()
 		self.assertEqual("b"*30, res[1])
 
+class ReaderLoopingTest(unittest.TestCase):
+	def packet_counter(self, cnt):
+		def callback(hdr, data):
+			cnt[0]+=1
+			self.assertEqual(cnt[0], hdr.getcaplen())
+			self.assertEqual(cnt[0], len(data))
+		return callback
+
+	def test_dispatch_no_packets(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			])
+
+		cnt = [0]
+		reader = pure_pcapy.Reader(input)
+		res = reader.dispatch(-1, self.packet_counter(cnt))
+		self.assertEqual(0, cnt[0])
+		self.assertEqual(0, res)
+		res = reader.dispatch(0, self.packet_counter(cnt))
+		self.assertEqual(0, cnt[0])
+		self.assertEqual(0, res)
+	
+	def test_loop_no_packets(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			])
+
+		cnt = [0]
+		reader = pure_pcapy.Reader(input)
+		res = reader.loop(0, self.packet_counter(cnt))
+		self.assertEqual(0, cnt[0])
+		self.assertEqual(None, res)
+		res = reader.loop(0, self.packet_counter(cnt))
+		self.assertEqual(0, cnt[0])
+		self.assertEqual(None, res)
+	
+	def test_dispatch_1_packet_read_all(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("IIII", 10, 20, 1, 1),
+			"a",
+			])
+
+		cnt = [0]
+		reader = pure_pcapy.Reader(input)
+		res = reader.dispatch(-1, self.packet_counter(cnt))
+		self.assertEqual(1, cnt[0])
+		self.assertEqual(0, res)
+	
+	def test_loop_1_packet_read_all(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("IIII", 10, 20, 1, 1),
+			"a",
+			])
+
+		cnt = [0]
+		reader = pure_pcapy.Reader(input)
+		res = reader.loop(-1, self.packet_counter(cnt))
+		self.assertEqual(1, cnt[0])
+		self.assertEqual(None, res)
+	
+	def test_dispatch_1_packet_read_1(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("IIII", 10, 20, 1, 1),
+			"a",
+			])
+
+		cnt = [0]
+		reader = pure_pcapy.Reader(input)
+		res = reader.dispatch(1, self.packet_counter(cnt))
+		self.assertEqual(1, cnt[0])
+		self.assertEqual(1, res)
+	
+	def test_loop_1_packet_read_1(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("IIII", 10, 20, 1, 1),
+			"a",
+			])
+
+		cnt = [0]
+		reader = pure_pcapy.Reader(input)
+		res = reader.loop(1, self.packet_counter(cnt))
+		self.assertEqual(1, cnt[0])
+		self.assertEqual(None, res)
+	
+	def test_dispatch_2_packet_read_1(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("IIII", 10, 20, 1, 1),
+			"a",
+			struct.pack("IIII", 10, 20, 2, 2),
+			"aa",
+			])
+
+		cnt = [0]
+		reader = pure_pcapy.Reader(input)
+		res = reader.dispatch(1, self.packet_counter(cnt))
+		self.assertEqual(cnt[0], 1)
+		self.assertEqual(res, 1)
+	
+	def test_loop_2_packet_read_1(self):
+		input = create_pcap_file([
+			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
+			struct.pack("IIII", 10, 20, 1, 1),
+			"a",
+			struct.pack("IIII", 10, 20, 2, 2),
+			"aa",
+			])
+
+		cnt = [0]
+		reader = pure_pcapy.Reader(input)
+		res = reader.loop(1, self.packet_counter(cnt))
+		self.assertEqual(cnt[0], 1)
+		self.assertEqual(res, None)
+
 class PkthdrTest(unittest.TestCase):
 	def test_hdr_fields(self):
 		input = create_pcap_file([

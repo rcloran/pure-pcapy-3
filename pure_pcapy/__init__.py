@@ -64,11 +64,33 @@ class Reader(object):
 
 		self.last_good_position = self.GLOBAL_HEADER_LEN
 
+	def __loop_and_count(self, maxcant, callback):
+		i = 0
+		while True:
+			if i >= maxcant and maxcant > -1:
+				break
+
+			hdr, data = self.next()
+			if hdr is None:
+				break
+			else:
+				callback(hdr, data)
+
+			i+=1
+
+		return i
+
 	def dispatch(self, maxcant, callback):
-		pass
+		i = self.__loop_and_count(maxcant, callback)
+
+		if maxcant > -1:
+			return i
+		else:
+			return 0
 
 	def loop(self, maxcant, callback):
-		pass
+		self.__loop_and_count(maxcant, callback)
+		return None
 
 	def next(self):
 		header = self.source.read(self.PACKET_HEADER_LEN)
