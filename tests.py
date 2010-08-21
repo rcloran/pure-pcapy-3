@@ -10,7 +10,14 @@ class OpenerTest(unittest.TestCase):
 		self.assertRaises(pure_pcapy.PcapError, pure_pcapy.open_offline, './')
 	
 	def test_open_good_file(self):
-		self.fail('implement this')
+		import os
+		input_filename = tempfile.mktemp()
+		f = open(input_filename, "wb")
+		f.write(struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1))
+		f.close()
+		reader = pure_pcapy.open_offline(input_filename)
+		self.assertTrue(isinstance(reader, pure_pcapy.Reader))
+		os.unlink(input_filename)
 
 class FixupTest(unittest.TestCase):
 	def test_fixup_short(self):
