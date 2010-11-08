@@ -73,8 +73,8 @@ def fixup_swapped_long(long_int):
 	return ((bottom << 16) & 0xffff0000) | top
 
 fixup_sets = {
-		0xa1b2c3d4: (fixup_identical_short, fixup_identical_long),
-		0xd4c3b2a1: (fixup_swapped_short, fixup_swapped_long),
+		"\xd4\xc3\xb2\xa1": (fixup_identical_short, fixup_identical_long),
+		"\xa1\xb2\xc3\xd4": (fixup_swapped_short, fixup_swapped_long),
 		}
 
 def open_offline(filename):
@@ -123,8 +123,8 @@ class Reader(object):
 					(self.__GLOBAL_HEADER_LEN, len(header)))
 		
 		hdr_values = struct.unpack("IHHIIII", header)
-		if hdr_values[0] in fixup_sets:
-			self.fixup_short, self.fixup_long = fixup_sets[hdr_values[0]]
+		if header[:4] in fixup_sets:
+			self.fixup_short, self.fixup_long = fixup_sets[header[:4]]
 		else:
 			raise PcapError("bad dump file format")
 
