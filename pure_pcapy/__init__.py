@@ -73,8 +73,8 @@ def fixup_swapped_long(long_int):
 	return ((bottom << 16) & 0xffff0000) | top
 
 fixup_sets = {
-		"\xd4\xc3\xb2\xa1": (fixup_identical_short, fixup_identical_long),
-		"\xa1\xb2\xc3\xd4": (fixup_swapped_short, fixup_swapped_long),
+		b"\xd4\xc3\xb2\xa1": (fixup_identical_short, fixup_identical_long),
+		b"\xa1\xb2\xc3\xd4": (fixup_swapped_short, fixup_swapped_long),
 		}
 
 def open_offline(filename):
@@ -252,8 +252,8 @@ class Dumper(object):
 		if not isinstance(header, Pkthdr):
 			raise PcapError("not a proper Pkthdr")
 
-		if type(data) != str:
-			raise PcapError("can dump only strings")
+		if type(data) != bytes:
+			raise PcapError("can dump only bytes")
 
 		if header.getcaplen() != len(data):
 			raise PcapError("capture length not equal to length of data")

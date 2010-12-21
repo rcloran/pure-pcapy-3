@@ -114,7 +114,7 @@ class ReaderPacketTest(unittest.TestCase):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 4, 4),
-			"aa"
+			b"aa"
 			])
 
 		reader = pure_pcapy.Reader(input)
@@ -128,7 +128,7 @@ class ReaderPacketTest(unittest.TestCase):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 30, 40),
-			"x" * 30
+			b"x" * 30
 			])
 
 		reader = pure_pcapy.Reader(input)
@@ -136,23 +136,23 @@ class ReaderPacketTest(unittest.TestCase):
 		self.assertEqual(tuple, type(res))
 		self.assertEqual(2, len(res))
 		self.assertTrue(isinstance(res[0], pure_pcapy.Pkthdr))
-		self.assertEqual(str, type(res[1]))
-		self.assertEqual("x"*30, res[1])
+		self.assertEqual(bytes, type(res[1]))
+		self.assertEqual(b"x"*30, res[1])
 
 	def test_read_2_packets(self):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 30, 40),
-			"a" * 30,
+			b"a" * 30,
 			struct.pack("IIII", 11, 20, 30, 40),
-			"b" * 30,
+			b"b" * 30,
 			])
 
 		reader = pure_pcapy.Reader(input)
 		res = reader.next()
-		self.assertEqual("a"*30, res[1])
+		self.assertEqual(b"a"*30, res[1])
 		res = reader.next()
-		self.assertEqual("b"*30, res[1])
+		self.assertEqual(b"b"*30, res[1])
 
 class ReaderLoopingTest(unittest.TestCase):
 	def packet_counter(self, cnt):
@@ -194,7 +194,7 @@ class ReaderLoopingTest(unittest.TestCase):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 1, 1),
-			"a",
+			b"a",
 			])
 
 		cnt = [0]
@@ -207,7 +207,7 @@ class ReaderLoopingTest(unittest.TestCase):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 1, 1),
-			"a",
+			b"a",
 			])
 
 		cnt = [0]
@@ -220,7 +220,7 @@ class ReaderLoopingTest(unittest.TestCase):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 1, 1),
-			"a",
+			b"a",
 			])
 
 		cnt = [0]
@@ -233,7 +233,7 @@ class ReaderLoopingTest(unittest.TestCase):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 1, 1),
-			"a",
+			b"a",
 			])
 
 		cnt = [0]
@@ -246,9 +246,9 @@ class ReaderLoopingTest(unittest.TestCase):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 1, 1),
-			"a",
+			b"a",
 			struct.pack("IIII", 10, 20, 2, 2),
-			"aa",
+			b"aa",
 			])
 
 		cnt = [0]
@@ -261,9 +261,9 @@ class ReaderLoopingTest(unittest.TestCase):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 1, 1),
-			"a",
+			b"a",
 			struct.pack("IIII", 10, 20, 2, 2),
-			"aa",
+			b"aa",
 			])
 
 		cnt = [0]
@@ -277,7 +277,7 @@ class PkthdrTest(unittest.TestCase):
 		input = create_pcap_file([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 30, 40),
-			"x" * 30
+			b"x" * 30
 			])
 		
 		reader = pure_pcapy.Reader(input)
@@ -290,10 +290,10 @@ class DumperTest(unittest.TestCase):
 	def test_replicate(self):
 		import os
 
-		original = ''.join([
+		original = b''.join([
 			struct.pack("IHHIIII", 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1),
 			struct.pack("IIII", 10, 20, 30, 40),
-			"x" * 30])
+			b"x" * 30])
 
 		input = tempfile.TemporaryFile()
 		input.write(original)
