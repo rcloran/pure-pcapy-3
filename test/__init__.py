@@ -39,7 +39,7 @@ class ReaderHeaderTest(unittest.TestCase):
 		try:
 			pure_pcapy.Reader(input)
 			self.fail("exception not thrown")
-		except pure_pcapy.PcapError, e:
+		except pure_pcapy.PcapError as e:
 			self.assertEqual("truncated dump file; tried to read 24 file header bytes, only got 0", e.args[0])
 	
 	def test_open_header_bad(self):
@@ -50,7 +50,7 @@ class ReaderHeaderTest(unittest.TestCase):
 		try:
 			pure_pcapy.Reader(input)
 			self.fail("exception not thrown")
-		except pure_pcapy.PcapError, e:
+		except pure_pcapy.PcapError as e:
 			self.assertEqual("bad dump file format", e.args[0])
 	
 	def test_open_header_bigendian(self):
@@ -107,7 +107,7 @@ class ReaderPacketTest(unittest.TestCase):
 		try:
 			res = reader.next()
 			self.fail("exception not thrown")
-		except pure_pcapy.PcapError, e:
+		except pure_pcapy.PcapError as e:
 			self.assertEqual("truncated dump file; tried to read 16 header bytes, only got 8", e.args[0])
 	
 	def test_read_half_data(self):
@@ -121,7 +121,7 @@ class ReaderPacketTest(unittest.TestCase):
 		try:
 			res = reader.next()
 			self.fail("exception not thrown")
-		except pure_pcapy.PcapError, e:
+		except pure_pcapy.PcapError as e:
 			self.assertEqual("truncated dump file; tried to read 4 captured bytes, only got 2", e.args[0])
 
 	def test_read_packet(self):

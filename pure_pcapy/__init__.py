@@ -85,7 +85,7 @@ def open_offline(filename):
 	else:
 		try:
 			source = open(filename, "rb")
-		except IOError, error:
+		except IOError as error:
 			if error.args[0] == 21:
 				raise PcapError("error reading dump file: %s" % (error.args[1]))
 			else:
