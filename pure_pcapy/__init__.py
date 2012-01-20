@@ -8,17 +8,17 @@ support should match the original though.
 """
 
 # Copyright 2010 Stanisław Pitucha. All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without modification, are
 # permitted provided that the following conditions are met:
-# 
+#
 # 1. Redistributions of source code must retain the above copyright notice, this list of
 # 	conditions and the following disclaimer.
-# 
+#
 # 2. Redistributions in binary form must reproduce the above copyright notice, this list
 # 	of conditions and the following disclaimer in the documentation and/or other materials
 # 	provided with the distribution.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY Stanisław Pitucha ``AS IS'' AND ANY EXPRESS OR IMPLIED
 # WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
 # FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> OR
@@ -28,7 +28,7 @@ support should match the original though.
 # ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# 
+#
 # The views and conclusions contained in the software and documentation are those of the
 # authors and should not be interpreted as representing official policies, either expressed
 # or implied, of Stanisław Pitucha.
@@ -90,7 +90,7 @@ def open_offline(filename):
 				raise PcapError("error reading dump file: %s" % (error.args[1]))
 			else:
 				raise PcapError("%s: %s" % (filename, error.args[1]))
-	
+
 	return Reader(source)
 
 def open_live(_device, _snaplen, _promisc, _to_ms):
@@ -108,8 +108,8 @@ def compile(_linktype, _snaplen, _filter, _optimize, _netmask):
 class Reader(object):
 	"""
 	An interface for reading an open pcap file.
-	This object can either read a single packet via `next()` or a series
-	via `loop()` or `dispatch()`.
+	This object can either read a single packet via `next()`, a series
+	via `loop()` or `dispatch()`, or by iterating over the object.
 	"""
 
 	__GLOBAL_HEADER_LEN = 24
@@ -124,7 +124,7 @@ class Reader(object):
 			raise PcapError(
 					"truncated dump file; tried to read %i file header bytes, only got %i" %
 					(self.__GLOBAL_HEADER_LEN, len(header)))
-		
+
 		hdr_values = struct.unpack("IHHIIII", header)
 		if header[:4] in fixup_sets:
 			self.fixup_short, self.fixup_long = fixup_sets[header[:4]]
@@ -179,6 +179,9 @@ class Reader(object):
 		"""
 		self.__loop_and_count(maxcant, callback)
 
+	def __iter__(self):
+	    return self
+
 	def next(self):
 		""" reads the next packet from file and returns a (Pkthdr, data) tuple """
 
@@ -193,7 +196,7 @@ class Reader(object):
 
 		hdr_values = struct.unpack("IIII", header)
 		ts_sec, ts_usec, incl_len, orig_len = [self.fixup_long(x) for x in hdr_values]
-		
+
 		data = self.__source.read(incl_len)
 		if len(data) < incl_len:
 			raise PcapError(
