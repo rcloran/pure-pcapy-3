@@ -3,7 +3,7 @@
 
 from setuptools import setup, find_packages
 setup(
-	name = "pure-pcapy",
+	name = "pure-pcapy3",
 	version = "1.0.1",
 	packages = find_packages(exclude=['test'],),
 
